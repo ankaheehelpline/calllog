@@ -476,7 +476,7 @@
 <body>
 
 <header>
-  <img src="Logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
+  <img id="logo" alt="" class="logo" hidden>
   <div>
     <div class="title">Call Log</div>
     <div class="subtitle">Quick entry — takes less than a minute</div>
@@ -509,6 +509,20 @@
 </div>
 
 <script>
+  (function () {
+  const DEFAULT_LOGO = 'https://ankaheehelpline.github.io/landing/logo.jpg';
+  let logo = '';
+  try {
+    const p = new URLSearchParams(location.search).get('logo');
+    if (p) localStorage.setItem('hubLogo', p);
+    logo = p || localStorage.getItem('hubLogo') || '';
+  } catch (e) {}
+  const img = document.getElementById('logo');
+  img.addEventListener('load', () => { img.hidden = false; });
+  img.addEventListener('error', () => { img.hidden = true; });
+  img.src = logo || DEFAULT_LOGO;
+})();
+  
 /* ====================================================================
    CONFIGURATION — edit these two values for your deployment
    ==================================================================== */
@@ -521,7 +535,7 @@ const HIGH_RISK_LEVEL = "L3"; // triggers de-escalated / help provided
 
 // Midnight Roster page — the nudge card links here with ?name=<Name>
 // so the roster opens with this volunteer already selected.
-const ROSTER_URL = "https://skrishnakumar00.github.io/Ankahee/midnight-roster.html";
+const ROSTER_URL = "https://ankaheehelpline.github.io/midnightroster/";
 
 /* ====================================================================
    FIELD DEFINITIONS
