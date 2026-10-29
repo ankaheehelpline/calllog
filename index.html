@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Call Log</title>
+<style>
+  /* ============ DESIGN TOKENS ============ */
+  :root {
+    --bg: #FAF6F2;
+    --surface: #FFFFFF;
+    --surface-soft: #F3EEE8;
+    --primary: #5B4B7C;
+    --primary-dark: #443A5E;
+    --primary-soft: #EDE8F3;
+    --success: #4F8A6D;
+    --success-soft: #E7F1EB;
+    --risk: #B8524A;
+    --risk-soft: #F7E9E7;
+    --text: #2E2A33;
+    --text-muted: #7A7480;
+    --border: #E4DDD6;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --shadow: 0 2px 10px rgba(46, 42, 51, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ============ HEADER ============ */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  header img.logo {
+    height: 36px;
+    width: auto;
+    border-radius: 6px;
+  }
+  header .title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--primary-dark);
+    letter-spacing: 0.2px;
+  }
+  header .subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 1px;
+  }
+
+  .progress-track {
+    height: 4px;
+    background: var(--surface-soft);
+    position: sticky;
+    top: 60px;
+    z-index: 19;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--primary);
+    width: 0%;
+    transition: width 0.35s ease;
+  }
+
+  /* ============ LAYOUT ============ */
+  main {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 20px 16px 120px;
+  }
+
+  .section {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+  }
+  .section.risk-section {
+    background: var(--risk-soft);
+    border-color: #E9C9C5;
+  }
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--primary-dark);
+    margin: 0 0 4px 0;
+  }
+  .risk-section .section-title { color: var(--risk); }
+  .section-hint {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0 0 16px 0;
+  }
+
+  /* ============ IDENTITY BAR ============ */
+  .identity-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--primary-soft);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+  .identity-bar strong { color: var(--primary-dark); }
+  .identity-bar button {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  .date-line {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .date-line button {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-size: 13px;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 2px;
+  }
+
+  .combo-wrap { position: relative; }
+  .combo-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 220px;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow);
+    z-index: 25;
+  }
+  .combo-item {
+    padding: 12px 14px;
+    font-size: 15px;
+    cursor: pointer;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+  .combo-item:hover, .combo-item:active {
+    background: var(--primary-soft);
+  }
+  .combo-empty {
+    padding: 12px 14px;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+
+  /* ============ FIELDS ============ */
+  .field { margin-bottom: 18px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  .field-label .optional {
+    font-weight: 400;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-left: 4px;
+  }
+
+  .chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chip {
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    user-select: none;
+    transition: all 0.15s ease;
+  }
+  .chip:active { transform: scale(0.97); }
+  .chip.selected {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    font-weight: 600;
+  }
+  .risk-section .chip.selected {
+    background: var(--risk);
+    border-color: var(--risk);
+  }
+  .chip-multi.selected::before {
+    content: "✓";
+    margin-right: 6px;
+    font-weight: 700;
+  }
+
+  select, input[type="text"], input[type="date"] {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    font-size: 15px;
+    background: var(--surface);
+    color: var(--text);
+    min-height: 46px;
+    font-family: inherit;
+  }
+  select:focus, input:focus, textarea:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+  }
+  textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    font-size: 15px;
+    font-family: inherit;
+    min-height: 70px;
+    resize: vertical;
+  }
+
+  .comments-toggle {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 0;
+  }
+
+  /* ============ SAVE BAR ============ */
+  .save-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    z-index: 30;
+  }
+  .save-bar-inner {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .save-btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    min-height: 50px;
+  }
+  .save-btn:active { background: var(--primary-dark); }
+  .save-btn:disabled { opacity: 0.5; }
+  .save-error {
+    font-size: 13px;
+    color: var(--risk);
+    text-align: center;
+    margin-top: 8px;
+    display: none;
+  }
+
+  /* ============ CONFIRMATION OVERLAY ============ */
+  .confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(46, 42, 51, 0.35);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .confirm-overlay.show { display: flex; }
+  .confirm-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 32px 28px;
+    text-align: center;
+    max-width: 320px;
+    box-shadow: 0 8px 30px rgba(46,42,51,0.15);
+  }
+  .confirm-check {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--success-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+  }
+  .confirm-check svg {
+    width: 28px;
+    height: 28px;
+  }
+  .confirm-check circle {
+    stroke: var(--success);
+    stroke-width: 2;
+    fill: none;
+    stroke-dasharray: 63;
+    stroke-dashoffset: 63;
+    animation: circleDraw 0.5s ease forwards;
+  }
+  .confirm-check path {
+    stroke: var(--success);
+    stroke-width: 2.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 20;
+    stroke-dashoffset: 20;
+    animation: checkDraw 0.3s ease forwards 0.45s;
+  }
+  @keyframes circleDraw { to { stroke-dashoffset: 0; } }
+  @keyframes checkDraw { to { stroke-dashoffset: 0; } }
+
+  .confirm-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 6px;
+  }
+  .confirm-sub {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  /* ============ ROSTER NUDGE (v2) ============ */
+  .nudge-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--primary);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 14px 8px 10px 16px;
+    margin-bottom: 16px;
+  }
+  .nudge-card.nudge-thanks { border-left-color: var(--success); }
+  .nudge-body { flex: 1; min-width: 0; }
+  .nudge-text {
+    font-size: 15px;
+    line-height: 1.45;
+    color: var(--text);
+    margin: 0;
+  }
+  .nudge-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--primary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .nudge-link:active { color: var(--primary-dark); }
+  .nudge-thanks .nudge-link { color: var(--success); }
+  .nudge-dismiss {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    margin-top: -8px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 999px;
+  }
+  .nudge-dismiss:active { background: var(--surface-soft); }
+  .nudge-link:focus-visible, .nudge-dismiss:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  /* ============ NEXT MIDNIGHT SHIFT LINE (v3) ============ */
+  /* Quiet one-liner directly under the "Logging as" bar. Empty = no space
+     taken, so volunteers with nothing to show see no gap. */
+  .next-shift {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 8px;
+    margin: -8px 4px 12px;
+    font-size: 15px;
+    line-height: 1.4;
+    color: var(--text);
+  }
+  .next-shift:empty { display: none; }
+  .next-shift strong { color: var(--primary-dark); }
+  .next-shift-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--primary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .next-shift-link:active { color: var(--primary-dark); }
+  .next-shift-link:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  .loading-note {
+    text-align: center;
+    padding: 40px 16px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .confirm-check circle, .confirm-check path { animation: none; stroke-dashoffset: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="Logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
+  <div>
+    <div class="title">Call Log</div>
+    <div class="subtitle">Quick entry — takes less than a minute</div>
+  </div>
+</header>
+<div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+<main id="formRoot">
+  <div class="loading-note" id="loadingNote">Loading form…</div>
+</main>
+
+<div class="save-bar" id="saveBar" style="display:none;">
+  <div class="save-bar-inner">
+    <button class="save-btn" id="saveBtn">Save call log</button>
+    <div class="save-error" id="saveError">Couldn't save — check your connection and try again.</div>
+  </div>
+</div>
+
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-card">
+    <div class="confirm-check">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M7 12.5l3 3 7-7"></path>
+      </svg>
+    </div>
+    <p class="confirm-title">Logged. Thank you.</p>
+    <p class="confirm-sub">Ready whenever you take the next call.</p>
+  </div>
+</div>
+
+<script>
+/* ====================================================================
+   CONFIGURATION — edit these two values for your deployment
+   ==================================================================== */
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2SJMqHOu8uGoEnm0lOiZ7DP-xaG5QSVwOiUkWgsBhVtCAPQCqHM-L0vbTu3ybydt3jQ/exec";
+
+// Risk level values (exactly as they appear in your Config sheet's
+// "Risk level" column) that should trigger the L2/L3-only questions.
+const ESCALATED_RISK_LEVELS = ["L2", "L3"];
+const HIGH_RISK_LEVEL = "L3"; // triggers de-escalated / help provided
+
+// Midnight Roster page — the nudge card links here with ?name=<Name>
+// so the roster opens with this volunteer already selected.
+const ROSTER_URL = "https://skrishnakumar00.github.io/Ankahee/midnight-roster.html";
+
+/* ====================================================================
+   FIELD DEFINITIONS
+   Each field maps to: the Logs column name it writes to, and (for
+   config-driven fields) the Config sheet column it reads options from.
+   ==================================================================== */
+// Type of call values (exactly as in Config) that route to each branch.
+const SDC_VALUE = "SDC/Inappropriate";
+const BEFRIENDING_VALUE = "Befriending";
+const OTHER_VALUES = ["Third Party", "Media enquiries", "Silent or calls less than 1 min (no content)", "Other"];
+
+function getBranch(typeOfCall) {
+  if (typeOfCall === BEFRIENDING_VALUE) return "BEFRIENDING";
+  if (typeOfCall === SDC_VALUE) return "SDC";
+  if (OTHER_VALUES.includes(typeOfCall)) return "OTHER";
+  return null;
+}
+function isBranch(name) {
+  return (d) => getBranch(d["Type of call"]) === name;
+}
+
+const TYPE_OF_CALL_FIELD = { key: "Type of call", config: "Type of call", type: "auto", default: BEFRIENDING_VALUE };
+
+const BASICS_FIELDS = [
+  { key: "Gender", config: "Gender", type: "auto" },
+  { key: "Duration", config: "Duration", type: "auto" },
+];
+
+const BEFRIENDING_FIELDS = [
+  { key: "Language", config: "Language", type: "auto", showIf: isBranch("BEFRIENDING") },
+  { key: "Type of caller", config: "Type of caller", type: "auto", showIf: isBranch("BEFRIENDING") },
+  { key: "Age of caller", config: "Age of caller", type: "auto", showIf: isBranch("BEFRIENDING") },
+  { key: "Occupation", config: "Occupation", type: "auto", forceChips: true, showIf: isBranch("BEFRIENDING") },
+  { key: "Support system", config: "Support system", type: "auto", multi: true, showIf: isBranch("BEFRIENDING") },
+  { key: "Name of caller", type: "text", optional: true, showIf: isBranch("BEFRIENDING") },
+];
+
+const RISK_FIELDS = [
+  { key: "Risk assessment conducted", config: "Risk assessment conducted", type: "auto" },
+  { key: "Risk level", config: "Risk level", type: "auto",
+    showIf: (d) => d["Risk assessment conducted"] === "Yes" },
+  { key: "Self harm", config: "Self harm", type: "auto", showIf: isBranch("BEFRIENDING") },
+  { key: "Suicide promise taken", config: "Suicide promise taken", type: "auto",
+    showIf: (d) => ESCALATED_RISK_LEVELS.includes(d["Risk level"]) },
+  { key: "Call deescalated", config: "Call deescalated", type: "auto",
+    showIf: (d) => d["Risk level"] === HIGH_RISK_LEVEL },
+  { key: "Help provided", config: "Help provided", type: "auto",
+    showIf: (d) => d["Risk level"] === HIGH_RISK_LEVEL },
+];
+
+const WRAPUP_BEFRIENDING_FIELDS = [
+  { key: "Nature of problem", config: "Nature of problem", type: "auto", multi: true, showIf: isBranch("BEFRIENDING") },
+  { key: "Feelings addressed", config: "Feelings addressed", type: "auto", multi: true, showIf: isBranch("BEFRIENDING") },
+  { key: "Caller at end of call", config: "Caller at end of call", type: "auto",
+    showIf: (d) => isBranch("BEFRIENDING")(d) && d["Feelings addressed"] && d["Feelings addressed"].length > 0 },
+];
+
+const SDC_FIELDS = [
+  { key: "3 warnings provided", config: "3 warnings provided", type: "auto", showIf: isBranch("SDC") },
+  { key: "EOR protocol initiated", config: "EOR protocol initiated", type: "auto", showIf: isBranch("SDC") },
+  { key: "Block Caller", config: "Block Caller", type: "auto", showIf: isBranch("SDC") },
+  { key: "Block Caller details", type: "text",
+    showIf: (d) => isBranch("SDC")(d) && d["Block Caller"] === "Yes" },
+];
+
+const OTHER_FIELDS = [
+  { key: "Encouraged caller to share", config: "Encouraged caller to share", type: "auto", showIf: isBranch("OTHER") },
+  { key: "Provided information about Ankahee", config: "Provided information about Ankahee", type: "auto", showIf: isBranch("OTHER") },
+];
+
+const ALL_FIELDS = [
+  TYPE_OF_CALL_FIELD, ...BASICS_FIELDS, ...BEFRIENDING_FIELDS, ...RISK_FIELDS,
+  ...WRAPUP_BEFRIENDING_FIELDS, ...SDC_FIELDS, ...OTHER_FIELDS
+];
+
+// Keys allowed to persist when Type of call changes — anything else is cleared
+const UNIVERSAL_KEYS = ["Type of call", "Pseudonym", "Date of call", "Day", "Month", "Gender", "Duration", "Risk assessment conducted",
+  "Risk level", "Suicide promise taken", "Call deescalated", "Help provided", "Additional comments"];
+const BRANCH_KEYS = {
+  BEFRIENDING: [...BEFRIENDING_FIELDS.map(f => f.key), "Self harm", ...WRAPUP_BEFRIENDING_FIELDS.map(f => f.key)],
+  SDC: SDC_FIELDS.map(f => f.key),
+  OTHER: OTHER_FIELDS.map(f => f.key),
+};
+function cleanupFormDataForBranch() {
+  const branch = getBranch(formData["Type of call"]);
+  const allowed = UNIVERSAL_KEYS.concat(BRANCH_KEYS[branch] || []);
+  Object.keys(formData).forEach(k => { if (!allowed.includes(k)) delete formData[k]; });
+}
+
+/* ====================================================================
+   STATE
+   ==================================================================== */
+let CONFIG = {};
+let formData = {};
+let pseudonymList = [];
+// Roster nudge (v2): one record for whoever is currently logging.
+// status: "loading" | "ready" | "none"; visible drops to false on dismiss,
+// link tap, or first save — the card never comes back in this page view.
+let nudge = { pseudonym: null, status: "none", content: null, visible: false };
+
+/* ====================================================================
+   INIT
+   ==================================================================== */
+init();
+
+async function init() {
+  try {
+    const res = await fetch(APPS_SCRIPT_URL + "?action=getConfig");
+    const json = await res.json();
+    if (json.status !== "success") throw new Error(json.message || "Config load failed");
+    CONFIG = json.config;
+    pseudonymList = CONFIG["Pseudonym"] || [];
+  } catch (err) {
+    document.getElementById("loadingNote").textContent =
+      "Couldn't load the form. Check the connection and reload.";
+    console.error(err);
+    return;
+  }
+  buildForm();
+}
+
+/* ====================================================================
+   BUILD FORM
+   ==================================================================== */
+function buildForm() {
+  const root = document.getElementById("formRoot");
+  root.innerHTML = "";
+
+  // ---- Identity ----
+  const savedName = sessionStorage.getItem("volunteerName");
+  const identitySection = document.createElement("div");
+  identitySection.className = "section";
+  identitySection.id = "identitySection";
+  identitySection.innerHTML = buildIdentityHTML(savedName);
+  root.appendChild(identitySection);
+  wireIdentity(savedName);
+
+  // ---- Next midnight shift line (v3) — sits in the identity section; fills in async ----
+  if (savedName) maybeLoadNextShift(savedName);
+
+  // ---- Roster nudge (v2) — only once a name is set; fills in async ----
+  if (savedName) {
+    const nudgeSlot = document.createElement("div");
+    nudgeSlot.id = "nudgeSlot";
+    root.appendChild(nudgeSlot);
+    maybeLoadNudge(savedName);
+  }
+
+  // ---- Call basics (Type of call first, then universal fields) ----
+  root.appendChild(buildSection("Call basics", null, [TYPE_OF_CALL_FIELD, ...BASICS_FIELDS], false));
+
+  const branch = getBranch(formData["Type of call"]);
+
+  // ---- Befriending-only details ----
+  if (branch === "BEFRIENDING") {
+    root.appendChild(buildSection("Befriending call details", null, BEFRIENDING_FIELDS, false));
+  }
+
+  // ---- Risk & safety (always shown) ----
+  root.appendChild(buildSection("Risk & safety", "This section matters most — please don't skip it.", RISK_FIELDS, true));
+
+  // ---- Branch-specific follow-up ----
+  if (branch === "BEFRIENDING") {
+    root.appendChild(buildSection("Call content & wrap-up", null, WRAPUP_BEFRIENDING_FIELDS, false));
+  } else if (branch === "SDC") {
+    root.appendChild(buildSection("SDC / inappropriate call details", null, SDC_FIELDS, false));
+  } else if (branch === "OTHER") {
+    root.appendChild(buildSection("Additional details", null, OTHER_FIELDS, false));
+  }
+
+  // ---- Comments ----
+  root.appendChild(buildCommentsSection());
+
+  document.getElementById("saveBar").style.display = "block";
+  document.getElementById("saveBtn").addEventListener("click", handleSave);
+
+  renderAllConditionals();
+  updateProgress();
+}
+
+function buildIdentityHTML(savedName) {
+  if (savedName) {
+    return `<div class="identity-bar">
+      <span>Logging as <strong>${escapeHtml(savedName)}</strong></span>
+      <button id="changeNameBtn" type="button">Not you?</button>
+    </div><div class="next-shift" id="nextShiftLine"></div>` + buildDateLine();
+  }
+  return `
+    <label class="field-label">Your name</label>
+    <div class="combo-wrap">
+      <input type="text" id="pseudonymSearch" autocomplete="off" placeholder="Type your name…">
+      <div class="combo-list" id="pseudonymListEl" style="display:none;"></div>
+    </div>
+    <div class="section-hint" style="margin-top:8px; margin-bottom:0;">You'll only need to do this once per shift — it stays set for every call you log after.</div>
+  `;
+}
+
+function buildDateLine() {
+  if (formData["Date of call"] === undefined) {
+    const now = new Date();
+    const f = formatDate(now);
+    formData["Date of call"] = f.isoValue;
+    formData["Day"] = f.day;
+    formData["Month"] = f.month;
+  }
+  return `<div class="date-line">
+    <span id="dateDisplay">${isoToDisplay(formData["Date of call"])}</span>
+    <button type="button" id="editDateBtn">Not today? Edit</button>
+    <input type="date" id="dateInput" value="${formData["Date of call"]}" style="display:none; margin-top:6px; width:auto;">
+  </div>`;
+}
+
+function wireIdentity(savedName) {
+  if (savedName) {
+    formData["Pseudonym"] = savedName;
+    document.getElementById("changeNameBtn").addEventListener("click", () => {
+      sessionStorage.removeItem("volunteerName");
+      buildForm();
+    });
+    const editBtn = document.getElementById("editDateBtn");
+    const dateInput = document.getElementById("dateInput");
+    editBtn.addEventListener("click", () => {
+      dateInput.style.display = dateInput.style.display === "none" ? "block" : "none";
+    });
+    dateInput.addEventListener("change", () => {
+      if (!dateInput.value) return;
+      const [y, m, d] = dateInput.value.split("-").map(Number);
+      const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+      const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+      const dow = new Date(y, m - 1, d).getDay();
+      formData["Date of call"] = dateInput.value;
+      formData["Day"] = days[dow];
+      formData["Month"] = months[m - 1];
+      document.getElementById("dateDisplay").textContent = isoToDisplay(dateInput.value);
+    });
+  } else {
+    const searchInput = document.getElementById("pseudonymSearch");
+    const listEl = document.getElementById("pseudonymListEl");
+
+    function renderMatches(query) {
+      const q = query.trim().toLowerCase();
+      const matches = q ? pseudonymList.filter(n => n.toLowerCase().includes(q)) : pseudonymList;
+      listEl.innerHTML = matches.length
+        ? matches.map(n => `<div class="combo-item" data-value="${escapeHtml(n)}">${escapeHtml(n)}</div>`).join("")
+        : `<div class="combo-empty">No match — check spelling</div>`;
+      listEl.style.display = "block";
+    }
+
+    searchInput.addEventListener("focus", () => renderMatches(searchInput.value));
+    searchInput.addEventListener("input", () => renderMatches(searchInput.value));
+    searchInput.addEventListener("blur", () => {
+      setTimeout(() => { listEl.style.display = "none"; }, 150);
+    });
+    listEl.addEventListener("click", (e) => {
+      const item = e.target.closest(".combo-item");
+      if (!item) return;
+      const val = item.dataset.value;
+      sessionStorage.setItem("volunteerName", val);
+      buildForm();
+    });
+  }
+}
+
+function formatDate(d) {
+  const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return {
+    isoValue: `${yyyy}-${mm}-${dd}`,
+    day: days[d.getDay()],
+    month: months[d.getMonth()]
+  };
+}
+
+function isoToDisplay(iso) {
+  const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const [y, m, d] = iso.split("-").map(Number);
+  const dow = new Date(y, m - 1, d).getDay();
+  return `${days[dow]}, ${String(d).padStart(2,"0")}/${String(m).padStart(2,"0")}/${y}`;
+}
+
+function buildSection(title, hint, fields, isRisk) {
+  const section = document.createElement("div");
+  section.className = "section" + (isRisk ? " risk-section" : "");
+  let html = `<div class="section-title">${title}</div>`;
+  if (hint) html += `<div class="section-hint">${hint}</div>`;
+  fields.forEach(f => { html += `<div class="field" id="field_${slug(f.key)}"></div>`; });
+  section.innerHTML = html;
+  fields.forEach(f => renderField(section, f));
+  return section;
+}
+
+function buildCommentsSection() {
+  const section = document.createElement("div");
+  section.className = "section";
+  section.innerHTML = `
+    <button type="button" class="comments-toggle" id="commentsToggle">+ Add a note (optional)</button>
+    <div class="field" id="commentsField" style="display:none; margin-top:10px;">
+      <textarea id="commentsInput" placeholder="Anything worth noting for training or follow-up…"></textarea>
+    </div>
+  `;
+  setTimeout(() => {
+    document.getElementById("commentsToggle").addEventListener("click", () => {
+      const field = document.getElementById("commentsField");
+      const showing = field.style.display !== "none";
+      field.style.display = showing ? "none" : "block";
+    });
+    document.getElementById("commentsInput").addEventListener("input", (e) => {
+      formData["Additional comments"] = e.target.value;
+    });
+  }, 0);
+  return section;
+}
+
+/* ====================================================================
+   RENDER A SINGLE FIELD
+   ==================================================================== */
+function renderField(container, f) {
+  const wrap = container.querySelector(`#field_${slug(f.key)}`);
+  if (!wrap) return;
+
+  if (f.type === "text") {
+    wrap.innerHTML = `
+      <label class="field-label">${f.key}${f.optional ? ' <span class="optional">optional</span>' : ''}</label>
+      <input type="text" data-key="${f.key}">
+    `;
+    wrap.querySelector("input").addEventListener("input", (e) => {
+      formData[f.key] = e.target.value;
+    });
+    return;
+  }
+
+  let options = f.type === "chips" ? f.options : (CONFIG[f.config] || []);
+
+  // Apply a default value once, if this field hasn't been answered yet
+  if (f.default && formData[f.key] === undefined && options.includes(f.default)) {
+    formData[f.key] = f.default;
+  }
+
+  if (f.type === "auto" && options.length > 6 && !f.multi && !f.forceChips) {
+    // dropdown for long lists
+    wrap.innerHTML = `
+      <label class="field-label">${f.key}</label>
+      <select data-key="${f.key}">
+        <option value="">Select…</option>
+        ${options.map(o => `<option value="${escapeHtml(o)}" ${formData[f.key] === o ? "selected" : ""}>${escapeHtml(o)}</option>`).join("")}
+      </select>
+    `;
+    wrap.querySelector("select").addEventListener("change", (e) => {
+      formData[f.key] = e.target.value;
+      if (f.key === "Type of call") {
+        cleanupFormDataForBranch();
+        buildForm();
+        return;
+      }
+      renderAllConditionals();
+      updateProgress();
+    });
+    return;
+  }
+
+  // chip group (single or multi select)
+  const selectedValues = f.multi ? (formData[f.key] || []) : [formData[f.key]];
+  wrap.innerHTML = `
+    <label class="field-label">${f.key}</label>
+    <div class="chip-group" data-key="${f.key}">
+      ${options.map(o => `<div class="chip${f.multi ? ' chip-multi' : ''}${selectedValues.includes(o) ? ' selected' : ''}" data-value="${escapeHtml(o)}">${escapeHtml(o)}</div>`).join("")}
+    </div>
+  `;
+  const group = wrap.querySelector(".chip-group");
+  group.querySelectorAll(".chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      if (f.multi) {
+        const current = formData[f.key] || [];
+        const val = chip.dataset.value;
+        if (current.includes(val)) {
+          formData[f.key] = current.filter(v => v !== val);
+          chip.classList.remove("selected");
+        } else {
+          formData[f.key] = [...current, val];
+          chip.classList.add("selected");
+        }
+      } else {
+        group.querySelectorAll(".chip").forEach(c => c.classList.remove("selected"));
+        chip.classList.add("selected");
+        formData[f.key] = chip.dataset.value;
+        if (f.key === "Type of call") {
+          cleanupFormDataForBranch();
+          buildForm();
+          return;
+        }
+      }
+      renderAllConditionals();
+      updateProgress();
+    });
+  });
+}
+
+/* ====================================================================
+   CONDITIONAL VISIBILITY
+   ==================================================================== */
+function renderAllConditionals() {
+  ALL_FIELDS.forEach(f => {
+    if (!f.showIf) return;
+    const wrap = document.getElementById(`field_${slug(f.key)}`);
+    if (!wrap) return;
+    const shouldShow = f.showIf(formData);
+    wrap.style.display = shouldShow ? "block" : "none";
+    if (!shouldShow) {
+      delete formData[f.key];
+      wrap.querySelectorAll(".chip.selected").forEach(c => c.classList.remove("selected"));
+      const sel = wrap.querySelector("select");
+      if (sel) sel.value = "";
+    }
+  });
+}
+
+/* ====================================================================
+   PROGRESS BAR (rough indicator, not a strict validator)
+   ==================================================================== */
+function updateProgress() {
+  const allFields = ALL_FIELDS.filter(f => !f.optional);
+  const visible = allFields.filter(f => !f.showIf || f.showIf(formData));
+  const filled = visible.filter(f => {
+    const v = formData[f.key];
+    return v !== undefined && v !== "" && !(Array.isArray(v) && v.length === 0);
+  });
+  const pct = visible.length ? Math.round((filled.length / visible.length) * 100) : 0;
+  document.getElementById("progressFill").style.width = pct + "%";
+}
+
+/* ====================================================================
+   VALIDATION
+   ==================================================================== */
+function getMissingFields() {
+  const allFields = ALL_FIELDS.filter(f => !f.optional);
+  const visible = allFields.filter(f => !f.showIf || f.showIf(formData));
+  return visible.filter(f => {
+    const v = formData[f.key];
+    return v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
+  }).map(f => f.key);
+}
+
+/* ====================================================================
+   SAVE
+   ==================================================================== */
+async function handleSave() {
+  const btn = document.getElementById("saveBtn");
+  const errorEl = document.getElementById("saveError");
+  errorEl.style.display = "none";
+
+  if (!formData["Pseudonym"]) {
+    errorEl.textContent = "Please enter your name first.";
+    errorEl.style.display = "block";
+    return;
+  }
+
+  const missing = getMissingFields();
+  if (missing.length > 0) {
+    errorEl.textContent = "Please complete: " + missing.join(", ");
+    errorEl.style.display = "block";
+    const firstMissing = document.getElementById(`field_${slug(missing[0])}`);
+    if (firstMissing) {
+      firstMissing.scrollIntoView({ behavior: "smooth", block: "center" });
+      firstMissing.style.outline = "2px solid var(--risk)";
+      firstMissing.style.borderRadius = "10px";
+      setTimeout(() => { firstMissing.style.outline = ""; }, 2000);
+    }
+    return;
+  }
+
+  const payload = { ...formData };
+  Object.keys(payload).forEach(k => {
+    if (Array.isArray(payload[k])) payload[k] = payload[k].join(", ");
+  });
+
+  btn.disabled = true;
+  btn.textContent = "Saving…";
+
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+    showConfirmation();
+    nudge.visible = false; // card has had its moment; don't carry it into the next log
+    resetFormKeepingIdentity();
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = "Couldn't save — check your connection and try again.";
+    errorEl.style.display = "block";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Save call log";
+  }
+}
+
+function showConfirmation() {
+  const overlay = document.getElementById("confirmOverlay");
+  overlay.classList.add("show");
+  // retrigger animation
+  overlay.querySelectorAll("circle, path").forEach(el => {
+    el.style.animation = "none";
+    void el.offsetWidth;
+    el.style.animation = "";
+  });
+  setTimeout(() => overlay.classList.remove("show"), 1600);
+}
+
+function resetFormKeepingIdentity() {
+  const keepName = formData["Pseudonym"];
+  const keepDate = formData["Date of call"];
+  const keepDay = formData["Day"];
+  const keepMonth = formData["Month"];
+  formData = {
+    "Pseudonym": keepName,
+    "Date of call": keepDate,
+    "Day": keepDay,
+    "Month": keepMonth
+  };
+  buildForm();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* ====================================================================
+   ROSTER NUDGE (v2)
+   Once per browser session per volunteer (sessionStorage), after the
+   name is set. Fetched in the background — never delays or blocks the
+   form; any failure just means no card.
+   ==================================================================== */
+const NUDGE_SEEN_PREFIX = "rosterNudgeSeen:";
+const NUDGE_MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+function maybeLoadNudge(pseudonym) {
+  if (nudge.pseudonym === pseudonym) { renderNudge(); return; }
+
+  // A different volunteer (first load, or after "Not you?") gets their own nudge.
+  nudge = { pseudonym, status: "none", content: null, visible: false };
+  const seenKey = NUDGE_SEEN_PREFIX + pseudonym.trim().toLowerCase();
+  if (sessionStorage.getItem(seenKey)) return;
+
+  nudge.status = "loading";
+  fetch(APPS_SCRIPT_URL + "?action=getRosterNudge&pseudonym=" + encodeURIComponent(pseudonym))
+    .then(res => res.json())
+    .then(json => {
+      if (nudge.pseudonym !== pseudonym) return; // name changed while loading
+      const content = json.status === "success" ? buildNudgeContent(json.nudge) : null;
+      if (!content) { nudge.status = "none"; return; }
+      nudge.status = "ready";
+      nudge.content = content;
+      nudge.visible = true;
+      sessionStorage.setItem(seenKey, "1");
+      renderNudge();
+    })
+    .catch(err => {
+      console.error(err);
+      if (nudge.pseudonym === pseudonym) nudge.status = "none";
+    });
+}
+
+// Decides what (if anything) to say. Returns null for "no card".
+function buildNudgeContent(n) {
+  if (!n || !n.name || !Array.isArray(n.months) || n.months.length === 0) return null;
+  const monthName = m => NUDGE_MONTH_NAMES[m.month - 1];
+  const covered = n.months.filter(m => m.covered);
+  const askable = n.months.filter(m => !m.covered && m.openDates > 0);
+  const link = ROSTER_URL + "?name=" + encodeURIComponent(n.name);
+
+  if (askable.length === 0) {
+    if (covered.length === 0) return null; // nothing covered, nothing open to ask for
+    const text = covered.length === n.months.length
+      ? `Thank you — you're on the midnight roster for ${joinMonths(covered.map(monthName))}.`
+      : `Thank you for your ${joinMonths(covered.map(monthName))} midnight ${covered.length > 1 ? "shifts" : "shift"}. The other months are already full.`;
+    return { thanks: true, text, linkText: "See your dates", link };
+  }
+
+  const askMonths = joinMonths(askable.map(monthName));
+  const takeOne = askable.length > 1 ? "Could you take one in each?" : "Could you take one?";
+  const hasHave = askable.length > 1 ? "have" : "has";
+  const text = covered.length > 0
+    ? `Thank you for your ${joinMonths(covered.map(monthName))} midnight ${covered.length > 1 ? "shifts" : "shift"}. ${askMonths} still ${hasHave} open Listening dates. ${takeOne}`
+    : `The midnight shift (10pm–12am) still has open Listening dates in ${askMonths}. ${takeOne}`;
+  return { thanks: false, text, linkText: "Pick a date", link };
+}
+
+function joinMonths(names) {
+  if (names.length <= 1) return names.join("");
+  return names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
+}
+
+function renderNudge() {
+  const slot = document.getElementById("nudgeSlot");
+  if (!slot) return;
+  if (!nudge.visible || !nudge.content) { slot.innerHTML = ""; return; }
+  const c = nudge.content;
+  slot.innerHTML = `
+    <div class="nudge-card${c.thanks ? " nudge-thanks" : ""}" role="status">
+      <div class="nudge-body">
+        <p class="nudge-text">${escapeHtml(c.text)}</p>
+        <a class="nudge-link" id="nudgeLink" href="${escapeHtml(c.link)}" target="_blank" rel="noopener">${escapeHtml(c.linkText)}</a>
+      </div>
+      <button type="button" class="nudge-dismiss" id="nudgeDismiss" aria-label="Dismiss">×</button>
+    </div>`;
+  // Roster opens in a new tab, so a half-filled log here is never lost.
+  document.getElementById("nudgeLink").addEventListener("click", () => {
+    nudge.visible = false;
+    setTimeout(renderNudge, 0);
+  });
+  document.getElementById("nudgeDismiss").addEventListener("click", () => {
+    nudge.visible = false;
+    renderNudge();
+  });
+}
+
+/* ====================================================================
+   NEXT MIDNIGHT SHIFT LINE (v3)  — self-contained block; delete this
+   block, the .next-shift CSS, the slot div in buildIdentityHTML, the one
+   call in buildForm and the visibilitychange listener below to remove.
+   --------------------------------------------------------------------
+   SPEC
+   Status: New. Touches existing code only at: buildIdentityHTML (adds an
+     empty slot div), buildForm (one call). Backend: getNextShift action
+     (call_logs_v4.gs).
+   Rules (CONFIRMED with product owner):
+     - Listening role only. Backend returns null for anyone not an Active,
+       Listening-tagged volunteer -> nothing is shown.
+     - Always visible under "Logging as X" (not dismissable, unlike the
+       nudge card).
+     - Next upcoming date, today onward, no upper limit.
+     - Date is today  -> "Tonight, 10pm–12am"
+       Date is later  -> "Fri, 16 Oct (in 2 days)" / "(tomorrow)"
+     - Nothing booked -> "No midnight shift booked." + link to roster
+       (?name= pre-selects the volunteer there).
+   Calculation: days-away is computed by the backend in IST from calendar
+     dates (CONFIRMED) — the phone's clock/timezone is never used.
+   Failure: any fetch error -> line stays empty; the form is unaffected.
+   Refresh: fetched once per name, then quietly re-fetched when the tab
+     regains focus (e.g. back from picking a date in the roster tab).
+   Dependencies: APPS_SCRIPT_URL, ROSTER_URL, escapeHtml.
+   ==================================================================== */
+const NEXT_SHIFT_DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const NEXT_SHIFT_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+// loaded=false until the first response; data = backend's nextShift object or null.
+let nextShift = { pseudonym: null, loaded: false, data: null };
+
+function maybeLoadNextShift(pseudonym, force) {
+  if (nextShift.pseudonym !== pseudonym) {
+    nextShift = { pseudonym, loaded: false, data: null };
+  } else if (nextShift.loaded && !force) {
+    renderNextShift();
+    return;
+  }
+  renderNextShift(); // shows whatever we already have (empty on first load)
+  fetch(APPS_SCRIPT_URL + "?action=getNextShift&pseudonym=" + encodeURIComponent(pseudonym))
+    .then(res => res.json())
+    .then(json => {
+      if (nextShift.pseudonym !== pseudonym) return; // name changed while loading
+      if (json.status !== "success") return;
+      nextShift.loaded = true;
+      nextShift.data = json.nextShift || null;
+      renderNextShift();
+    })
+    .catch(err => console.error(err));
+}
+
+function renderNextShift() {
+  const slot = document.getElementById("nextShiftLine");
+  if (!slot) return;
+  const d = nextShift.data;
+  if (!d) { slot.innerHTML = ""; return; }
+
+  if (!d.date) {
+    const link = ROSTER_URL + "?name=" + encodeURIComponent(d.name);
+    slot.innerHTML =
+      `<span>No midnight shift booked.</span>` +
+      `<a class="next-shift-link" href="${escapeHtml(link)}" target="_blank" rel="noopener">Pick a date</a>`;
+    return;
+  }
+
+  if (d.daysAway === 0) {
+    slot.innerHTML = `<span>Next midnight shift: <strong>Tonight</strong>, 10pm–12am</span>`;
+    return;
+  }
+
+  const [y, m, day] = d.date.split("-").map(Number);
+  const dow = new Date(y, m - 1, day).getDay(); // local components only, no UTC parsing
+  const label = `${NEXT_SHIFT_DAYS[dow]}, ${day} ${NEXT_SHIFT_MONTHS[m - 1]}`;
+  const away = d.daysAway === 1 ? "tomorrow" : `in ${d.daysAway} days`;
+  slot.innerHTML = `<span>Next midnight shift: <strong>${escapeHtml(label)}</strong> (${away})</span>`;
+}
+
+// Quietly catch up when the tab regains focus (e.g. after picking a date
+// in the roster tab). No spinner, no message — the old line stays until
+// the new answer arrives.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && nextShift.pseudonym &&
+      sessionStorage.getItem("volunteerName") === nextShift.pseudonym) {
+    maybeLoadNextShift(nextShift.pseudonym, true);
+  }
+});
+
+/* ====================================================================
+   UTILITIES
+   ==================================================================== */
+function slug(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "_"); }
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+</script>
+
+</body>
+</html>
